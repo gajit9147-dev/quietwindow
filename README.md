@@ -4,9 +4,11 @@ A simulated Alexa+ household experience for negotiating noisy chores around decl
 
 ## Status
 
-Local prototype only. Offline deterministic planning. No live AI, Alexa account connection, voice capture, device control, household messaging or production deployment. Scenario buttons are explicit tool invocations, not natural-language AI.
+Fictional web prototype. Offline deterministic planning. No live AI, Alexa account connection, voice capture, device control, household messaging or production deployment. Scenario buttons are explicit tool invocations, not natural-language AI.
 
 ## Run
+
+The initial source is supplied in `3-quietwindow-source.zip`. Download or clone this repository, unzip that archive and open the inner `quietwindow` folder before the commands below. It contains source, tests, lockfile and deployment config. Loose-file GitHub layout will follow; the ZIP is not a build artifact.
 
 Node 22.13+ is needed for built-in SQLite (experimental in Node 22).
 
