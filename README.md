@@ -1,55 +1,73 @@
 # QuietWindow
 
-A simulated Alexa+ household experience for negotiating noisy chores around declared quiet windows.
+A household noise negotiator, built as a simulated Alexa+ web experience for the Amazon Developer Hackathon.
 
-## Status
+Live demo (free hosting, may take about a minute to wake up): https://quietwindow.onrender.com/
 
-Fictional web prototype. Offline deterministic planning. No live AI, Alexa account connection, voice capture, device control, household messaging or production deployment. Scenario buttons are explicit tool invocations, not natural-language AI.
+Fictional people only. Maya, Arun and Leo share a home. Each declares quiet windows (a client call, a nap, reading time) in rooms. QuietWindow plans six noisy chores around those windows using a declared sound-reach map between rooms. There are no microphones and no measured sound.
 
-## Run
+## Status, said plainly
 
-The initial source is supplied in `3-quietwindow-source.zip`. Download or clone this repository, unzip that archive and open the inner `quietwindow` folder before the commands below. It contains source, tests, lockfile and deployment config. Loose-file GitHub layout will follow; the ZIP is not a build artifact.
+- Offline and rule-based. There is no live AI model behind it. The request reader is a deterministic parser, and the page labels itself that way.
+- Simulated Alexa+ experience in a web page. It is not a deployed Alexa skill.
+- The tool layer is exposed in two ways: inside the web app, and as a small MCP-style JSON-RPC endpoint at `/mcp` (initialize, tools/list, tools/call). It is a plain implementation of the protocol messages, not tested against a real Alexa+ account.
+- Sessions are stored in SQLite on free hosting, so demo data can reset on restart.
 
-Node 22.13+ is needed for built-in SQLite (experimental in Node 22).
+## What it does
+
+1. Type or speak a change, for example "Maya's call moved to 4pm". Voice uses the browser's own speech recognition when the browser has it.
+2. The reader turns it into typed tool calls (get_household, update_quiet_window, propose_plans). It shows what it understood and asks a question when unclear. Nothing changes until you press apply. There is no approve tool.
+3. It proposes plans: Smallest change (keeps valid chores where they were), Finish earlier, Keep afternoon open.
+4. Every chore gets a reason: kept, moved, new, or not placed, with the cause.
+5. For chores that cannot fit, it lists costed options: extend the deadline, ask a person to shift their window (that is their decision, the app only suggests it), or skip today.
+6. Approval is bound to the household revision. Changing a window invalidates it. Saving an incomplete plan needs a second confirmation.
+
+
+## Run locally
+
+Needs Node 22.5 or newer (built-in SQLite).
 
 ```
-npm install
-npm run server
-# In another terminal:
-npm run dev
-```
-
-Open the Vite URL. Fictional demo: Maya, Arun, Leo and six chores. Each browser session has its own random HttpOnly cookie and SQLite record. The database stays in ignored data/; do not commit real household records.
-
-```
-npm test
+npm ci
 npm run build
-node tests/ui-check.mjs
-node tests/api-check.mjs
+npm start
 ```
 
-The browser verification uses local Chrome at /usr/bin/google-chrome-stable. It starts and stops its own local API and web processes.
+Open http://127.0.0.1:3001. For development, run `npm run server` and `npm run dev` in two terminals.
 
-## Assumptions and limits
+Tests:
 
-All sound reach is user-declared, not measured. One person performs chores sequentially. The two proposals use an ordering search with greedy five-minute-grid slot placement (all 720 orders for the six-chore demo); unplaced tasks are not a proof that an exhaustive search cannot find a solution. A call blocking the whole afternoon does make affected noisy tasks impossible under the declared map. Quiet chores also avoid occupied rooms.
+```
+npm test                  # unit tests
+node tests/api-check.mjs  # API and MCP checks (starts its own server)
+node tests/ui-check.mjs   # browser checks, needs Playwright chromium (npx playwright install chromium)
+```
 
-Plans are generated without saving. Approval regenerates the trusted proposal, rejects a stale revision and persists the approved state. Changing quiet windows invalidates approval. The UI discloses unresolved tasks and requires a second confirmation to save an incomplete plan; the API requires an explicit acknowledgement too.
+## Limits
 
-The local cookie and localhost-only server are not production authentication. Before deployment add secure cookies, origin/auth configuration, concurrency checks, expiry/rate limiting and stronger request validation. No guarantees of acoustic quiet or health benefits.
+- Sound reach is user-declared. No acoustic guarantee.
+- The planner is a bounded search: all orderings for up to six chores, a fixed set of shuffled orderings above that, five-minute slots. A chore marked "not placed" means this search did not find a place, not a proof that none exists.
+- Times are minutes within one day. Windows that cross midnight are not supported.
+- "Negotiation" means the app lays out options. It does not message or get consent from the other people.
+- Free hosting: sleeps after inactivity, cold start can take over 50 seconds, data can reset.
+- Not production authentication. Sessions use a random HttpOnly cookie, expire after 7 days and are cleaned up on start.
 
-## Hackathon route
+## Friction log (building for Alexa+)
 
-The hackathon allows a simulated Alexa+ experience with an entrant's own AI/agentic tools. This prototype is not yet an AI experience or final submission. A later milestone must validate live AI and honest fallback, with tool-call auditing and UI review before changes are pushed.
+- The $150 AWS credit codes had run out by the time I looked, so I built without AWS and hosted for free.
+- The MCP Toolkit docs say it is available in the United States, so I could not test against a real Alexa+ device from here. I built a simulation and a plain JSON-RPC endpoint instead.
+- I could not confirm a way to try an Alexa+ add-on locally without an account, so tool-call behaviour is tested only against my own client.
 
-Official references:
-- https://amazonappdev2026.devpost.com/rules
-- https://developer.amazon.com/docs/alexaplus/add-ons/mcp-toolkit-overview.html
-- https://developer.amazon.com/docs/alexaplus/add-ons/mcp-toolkit-quickstart.html
-- https://developer.amazon.com/docs/alexaplus/add-ons/mcp-addon-layout-and-rendering.html
+## Product feedback
 
-The current toolkit overview says the MCP Toolkit is available in the United States. Production Alexa onboarding is not promised. No competitor code copied.
+- A downloadable local MCP test harness would let entrants outside the US check tool calls and rendering.
+- Clear notice when credit codes are exhausted, on the page that offers them.
 
-## Free hosted demo
+## Layout
 
-Render free hosting uses temporary disk. Session state survives ordinary page reloads while that service instance runs, but can reset after a restart/redeploy. Use fictional demo inputs only; there is no production household account or durable cloud-storage promise. Free hosting may sleep and need a cold start. No paid disk or service is configured.
+- `src/planner.ts` planner and trace, `src/negotiate.ts` options, `src/mediator.ts` offline request reader, `src/tools.ts` typed tools, `server/index.ts` API, sessions and `/mcp`.
+- `BUILD_PLAN.md`, `DESIGN_SOURCES.md` background notes.
+
+Official references: https://amazonappdev2026.devpost.com/rules and the Alexa+ MCP toolkit docs at https://developer.amazon.com/docs/alexaplus/add-ons/mcp-toolkit-overview.html
+
+No competitor code was copied.
