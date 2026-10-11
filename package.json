@@ -1,0 +1,32 @@
+{
+  "name": "quietwindow",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "tsc --noEmit && vite build",
+    "test": "tsx --test tests/*.test.ts",
+    "server": "tsx server/index.ts",
+    "start": "tsx server/index.ts"
+  },
+  "dependencies": {
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.18.0",
+    "@types/react": "^19.1.13",
+    "@types/react-dom": "^19.1.9",
+    "@vitejs/plugin-react": "^5.0.3",
+    "vite": "^7.1.7",
+    "typescript": "^5.9.2",
+    "tsx": "^4.20.5",
+    "tailwindcss": "^4.1.13",
+    "@tailwindcss/vite": "^4.1.13",
+    "playwright": "^1.55.1"
+  },
+  "engines": {
+    "node": ">=22.5.0"
+  }
+}
