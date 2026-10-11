@@ -65,7 +65,7 @@ node tests/ui-check.mjs   # browser checks, needs Playwright chromium (npx playw
 
 ## Layout
 
-- `src/planner.ts` planner and trace, `src/negotiate.ts` options, `src/mediator.ts` offline request reader, `src/tools.ts` typed tools, `server/index.ts` API, sessions and `/mcp`.
+- `src/planner.ts` planner and trace, `src/negotiate.ts` options, `src/mediator.ts` request mediator with the offline rule-based reader, `src/llm.ts` optional Gemini reader, `src/tools.ts` typed tools, `server/index.ts` API, sessions and `/mcp`.
 - `BUILD_PLAN.md`, `DESIGN_SOURCES.md` background notes.
 
 Official references: https://amazonappdev2026.devpost.com/rules and the Alexa+ MCP toolkit docs at https://developer.amazon.com/docs/alexaplus/add-ons/mcp-toolkit-overview.html
