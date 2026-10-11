@@ -8,7 +8,7 @@ Fictional people only. Maya, Arun and Leo share a home. Each declares quiet wind
 
 ## Status, said plainly
 
-- Offline and rule-based. There is no live AI model behind it. The request reader is a deterministic parser, and the page labels itself that way.
+- The request reader has two modes. By default it is an offline, deterministic parser with no language model. If a `GEMINI_API_KEY` environment variable is set, a Gemini model reads the one-sentence request instead, and its answer is checked against the household before use. On any error or without a key it falls back to the offline parser. Neither reader can approve or save a plan, and the page and `/api/health` say which mode is live. Planning, negotiation and the mediator steps stay deterministic.
 - Simulated Alexa+ experience in a web page. It is not a deployed Alexa skill.
 - The tool layer is exposed in two ways: inside the web app, and as a small MCP-style JSON-RPC endpoint at `/mcp` (initialize, tools/list, tools/call). It is a plain implementation of the protocol messages, not tested against a real Alexa+ account.
 - Sessions are stored in SQLite on free hosting, so demo data can reset on restart.
