@@ -40,7 +40,8 @@ function overlapsQuiet(c:State['chores'][0],x:Slot,q:State['quiet'][0]){
 
 function App(){
  const [s,setS]=useState<State>(initialState()),[plans,setPlans]=useState<Plan[]>([]),[sel,setSel]=useState<string>(''),[status,setStatus]=useState('Loading your demo household…'),[busy,setBusy]=useState(false);
- const [text,setText]=useState(EXAMPLES[0]),[preview,setPreview]=useState<Preview|null>(null),[neg,setNeg]=useState<Negotiation[]>([]),[opt,setOpt]=useState<string>(''),[confirming,setConfirming]=useState(false),[ack,setAck]=useState(false);
+ const [llm,setLlm]=useState(false),[text,setText]=useState(EXAMPLES[0]),[preview,setPreview]=useState<Preview|null>(null),[neg,setNeg]=useState<Negotiation[]>([]),[opt,setOpt]=useState<string>(''),[confirming,setConfirming]=useState(false),[ack,setAck]=useState(false);
+ useEffect(()=>{api('health').then(h=>setLlm(h.aiConnected===true)).catch(()=>{})},[]);
  useEffect(()=>{api('state').then(x=>{setS(x);setStatus('Your household is ready. Nothing changes until you approve.')}).catch(e=>setStatus(e.message))},[]);
  const plan=plans.find(p=>p.id===sel)||null;
  const act=async(fn:()=>Promise<void>)=>{setBusy(true);try{await fn()}catch(e){setStatus(e instanceof Error?e.message:'Something went wrong')}finally{setBusy(false)}};
@@ -64,8 +65,8 @@ function App(){
    <nav aria-label="Main navigation"><a className="active" aria-current="page" href="#today">Today / Plan review</a><a href="#household">Household rules</a><a href="#chores">Chores</a><a href="#history">Plan history</a></nav>
    <div className="side-block" id="household"><div className="eyebrow">Household</div><p><strong>Fictional demo home</strong></p><p className="muted">3 people · 5 rooms</p><p><span className="dot"/>Sound-reach map declared</p><p className="muted">No microphones or audio sensing</p></div>
    <div className="side-block"><div className="eyebrow">Active constraints</div>{s.quiet.map(q=><div className="constraint" key={q.id}><strong>{q.person} · {q.label}</strong><small>{q.room} · {time(q.start)}-{time(q.end)}</small></div>)}</div>
-   <div className="side-foot">Offline demonstration<br/>No live AI connection<br/>All decisions require your review</div></aside>
-  <div className="mobilebar"><a className="brand" href="#today"><span className="brandmark" aria-hidden="true"/>QuietWindow</a><span className="tag warn">Offline prototype</span></div>
+   <div className="side-foot">{llm?<>Demonstration with an LLM reader<br/>Offline rules as fallback<br/></>:<>Offline demonstration<br/>No live AI connection<br/></>}All decisions require your review</div></aside>
+  <div className="mobilebar"><a className="brand" href="#today"><span className="brandmark" aria-hidden="true"/>QuietWindow</a><span className="tag warn">{llm?'LLM reader + offline fallback':'Offline prototype'}</span></div>
   <main className="main" id="today">
    <div className="top"><div><div className="eyebrow">Fictional demo household</div><h1>Review the updated day</h1><p className="muted" aria-live="polite">{status}</p></div>
     <div className="tags"><span className="tag">Household revision {s.revision}</span><span className={'tag '+(s.accepted?'good':'warn')}>{s.accepted?'Plan approved':'Not approved'}</span><span className="tag warn">Offline prototype · no live AI</span></div></div>
@@ -77,7 +78,7 @@ function App(){
      <textarea id="req" value={text} maxLength={300} onChange={e=>{setText(e.target.value);setPreview(null)}}/>
      <div className="row"><button className="primary" onClick={review} disabled={busy||!text.trim()}>Review request</button>{plans.length===0&&<button onClick={generate} disabled={busy}>Plan the day as it is</button>}</div>
      <div className="examples" aria-label="Example requests">{EXAMPLES.map(x=><button key={x} onClick={()=>{setText(x);setPreview(null)}}>{x}</button>)}</div>
-     <p className="muted" style={{marginTop:12,fontSize:12}}>An offline rule-based reader turns your sentence into typed tool calls. It is not a language model, and it has no approve tool.</p></div>
+     <p className="muted" style={{marginTop:12,fontSize:12}}>{llm?'A language model (Gemini) reads your sentence and proposes one typed edit, which the server checks against the household. If it is unavailable, an offline rule-based reader is used. Neither has an approve tool.':'An offline rule-based reader turns your sentence into typed tool calls. It is not a language model, and it has no approve tool.'}</p></div>
     <div><div className="eyebrow">02 · Tool-call trace</div><h2>How the request was read</h2>
      {!preview&&<p className="muted" style={{marginTop:10}}>Nothing read yet. Press "Review request".</p>}
      {preview?.status==='needs_clarification'&&<div className="question" role="status"><strong>One question first</strong><p>{preview.question}</p></div>}
@@ -119,7 +120,7 @@ function App(){
     {!confirming?<button className="primary" onClick={()=>setConfirming(true)} disabled={busy}>Review and approve</button>
      :<div className="confirm">{plan.unscheduled.length>0&&<label><input type="checkbox" checked={ack} onChange={e=>setAck(e.target.checked)}/>I understand {plan.unscheduled.length} chore(s) stay unplaced.</label>}<button className="primary" onClick={approve} disabled={busy||(plan.unscheduled.length>0&&!ack)}>Confirm and save</button><button onClick={()=>{setConfirming(false);setAck(false)}}>Back</button></div>}</div>}
 
-   <div className="footer-note"><span>QuietWindow is a web simulation, not an installed Alexa add-on. No live AI, device control or household messages. Fictional people only.</span>
+   <div className="footer-note"><span>QuietWindow is a web simulation, not an installed Alexa add-on. {llm?'Only the request sentence is sent to a language model. ':'No live AI. '}No device control or household messages. Fictional people only.</span>
     <button className="textbtn" onClick={()=>act(async()=>{const next=await api('reset',{});setS(next);setPlans([]);setSel('');reset();setText(EXAMPLES[0]);setStatus('Fictional household reset.')})} disabled={busy}>Reset fictional demo</button></div>
   </main></div>;
 }
