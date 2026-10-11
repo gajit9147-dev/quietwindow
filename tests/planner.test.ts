@@ -12,3 +12,21 @@ test('bad labels, duplicate IDs, inherited room names and nonfinite times reject
 
 test('ordering search handles a narrow-deadline task',()=>{const s=initialState();s.quiet=[];s.chores=[{id:'a',label:'Long task',room:'kitchen',duration:60,noisy:false,earliest:0,deadline:120},{id:'b',label:'Narrow task',room:'kitchen',duration:30,noisy:false,earliest:0,deadline:30}];for(const p of createPlans(s))assert.equal(p.unscheduled.length,0)});
 test('plan diff retains previous approval baseline',()=>{const s=initialState(),p=createPlans(s)[0];assert.equal(planDiff(s,p).baseline,false);s.previous=p;const moved=structuredClone(p);moved.slots[0].start+=5;assert.equal(planDiff(s,moved).moved,1)});
+
+test('200 random households: every placed chore obeys windows, bounds and single-task capacity',()=>{
+ let seed=11;const rnd=(n:number)=>{seed=(seed*1103515245+12345)%2147483648;return seed%n};
+ for(let i=0;i<200;i++){
+  const s=initialState();
+  s.quiet=s.quiet.map(q=>{const start=480+rnd(600);return {...q,start,end:Math.min(1440,start+30+rnd(180))}});
+  for(const p of createPlans(s)){
+   for(const x of p.slots){
+    const c=s.chores.find(c=>c.id===x.choreId)!;
+    assert.equal(x.end-x.start,c.duration);
+    assert.ok(x.start>=c.earliest&&x.end<=c.deadline,'outside chore bounds');
+    assert.equal(conflict(c,x.start,s),null,'placed inside a quiet window');
+   }
+   for(const a of p.slots)for(const b of p.slots)if(a!==b)assert.ok(!overlap(a.start,a.end,b.start,b.end),'two chores overlap');
+   assert.equal(p.slots.length+p.unscheduled.length,s.chores.length,'a chore went missing');
+  }
+ }
+});
