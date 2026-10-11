@@ -17,7 +17,7 @@ export async function readWithLLM(s:State,text:string,fetchImpl:typeof fetch=fet
  try{
   const ctl=new AbortController();const t=setTimeout(()=>ctl.abort(),8000);
   const r=await fetchImpl(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,{method:'POST',signal:ctl.signal,headers:{'Content-Type':'application/json','x-goog-api-key':key},body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:0,responseMimeType:'application/json',responseSchema:schema}})});
-  clearTimeout(t);if(!r.ok)return null;
+  clearTimeout(t);if(!r.ok){console.warn('LLM reader HTTP',r.status,(await r.text().catch(()=>'')).slice(0,200));return null}
   const j:any=await r.json();const out=JSON.parse(j?.candidates?.[0]?.content?.parts?.[0]?.text||'null');
   if(!out||typeof out!=='object')return null;
   if(typeof out.question==='string'&&out.question.trim()&&!out.quietId)return {question:out.question.trim().slice(0,200)};
@@ -25,5 +25,5 @@ export async function readWithLLM(s:State,text:string,fetchImpl:typeof fetch=fet
   const ns=out.newStart,ne=out.newEnd;
   if(!q||!Number.isInteger(ns)||!Number.isInteger(ne)||ns<0||ne>1440||ns>=ne)return null;
   return {person:q.person,quietId:q.id,newStart:ns,newEnd:ne,summary:`${q.person}'s "${q.label}" now ${label(ns)}-${label(ne)}.`};
- }catch{return null}
+ }catch(e){console.warn('LLM reader failed:',e instanceof Error?e.message:'error');return null}
 }
