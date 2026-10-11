@@ -8,7 +8,7 @@ async function api(path:string,body?:unknown){
  const r=await fetch('/api/'+path,{method:body?'POST':'GET',headers:body?{'Content-Type':'application/json'}:{},body:body?JSON.stringify(body):undefined});
  const data=await r.json();if(!r.ok)throw Error(data.error||'Request failed');return data;
 }
-type Preview={status:'proposal'|'needs_clarification';understood?:string;question?:string;toolTrace?:{tool:string;note:string}[]};
+type Preview={status:'proposal'|'needs_clarification';engine?:string;understood?:string;question?:string;toolTrace?:{tool:string;note:string}[]};
 const ROOMS:[string,string][]=[['office','Office'],['bedroom','Bedroom'],['living','Living room'],['kitchen','Kitchen'],['utility','Utility']];
 const EXAMPLES=["Maya's call moved to 4pm","Leo's reading ends at 17:30","Push Arun's rest 30 minutes later"];
 const describe=(id:string)=>id.startsWith('smallest')?'Keeps every chore that still works where it was. Moves only what the change breaks.':id.startsWith('early')?'Starts each chore at its earliest compatible time.':'Pushes chores toward their deadlines to keep the afternoon open.';
@@ -83,7 +83,7 @@ function App(){
      {!preview&&<p className="muted" style={{marginTop:10}}>Nothing read yet. Press "Review request".</p>}
      {preview?.status==='needs_clarification'&&<div className="question" role="status"><strong>One question first</strong><p>{preview.question}</p></div>}
      {preview?.status==='proposal'&&<>
-      <div className="understood" role="status"><strong>Understood</strong><p>{preview.understood}</p></div>
+      <div className="understood" role="status"><strong>Understood</strong><p>{preview.understood}</p><p className="muted" style={{fontSize:12,marginTop:6}}>Read by {preview.engine==='gemini'?'Gemini (language model), checked by the server':'the offline rule-based reader'}.</p></div>
       <details className="trace"><summary>{preview.toolTrace!.length} typed tool calls (preview, nothing saved)</summary><div className="tracebody">{preview.toolTrace!.map((t,i)=><div key={i}><span className="n">{String(i+1).padStart(2,'0')}</span><span className="fn">{t.tool}</span> <span className="ok">→</span> {t.note}</div>)}</div></details>
       <div className="row" style={{marginTop:12}}><button className="primary" onClick={applyChange} disabled={busy}>Apply this change and plan</button><button onClick={()=>setPreview(null)} disabled={busy}>Cancel</button></div>
       <p className="muted" style={{fontSize:12,marginTop:8}}>Applying edits the declared quiet window and clears any saved approval. It does not approve a plan.</p></>}
